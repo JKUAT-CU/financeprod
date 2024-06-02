@@ -3,8 +3,8 @@
 
 // Database configuration
 $servername = "localhost";
-$username = "test1";
-$password = "qKJM82Hqxa2m(ESd";
+$username = "jkuatcu_daraja";
+$password = "K@^;daY0*j(n";
 $dbname = "jkuatcu_daraja";
 
 // Create connection
