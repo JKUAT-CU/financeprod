@@ -1,6 +1,8 @@
 <?php
 // Include the database connection code
 include 'db.php';
+header("Access-Control-Allow-Origin: *");
+header("Content-Type: application/json");
 
 // Fetch data from the accounts table
 $sql = "SELECT TransTime, TransAmount, BillRefNumber FROM accounts";
@@ -10,11 +12,18 @@ $data = [];
 $billRefs = [];
 if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        $transTime = $row['TransTime'];
+        // Cast TransTime to integer
+        $transTime = (int)$row['TransTime'];
+        
+        // Extract year and month
         $year = substr($transTime, 0, 4);
-        $month = substr($transTime, 4, 2);
+        $month = (int)substr($transTime, 4, 2);
         $day = substr($transTime, 6, 2);
+        
+        // Calculate week
         $week = date('W', strtotime("$year-$month-$day"));
+        
+        // Calculate semester
         $semester = ceil($month / 4);
         
         $billRef = $row['BillRefNumber'];
