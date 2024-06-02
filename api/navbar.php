@@ -3,13 +3,13 @@
  ?>
 <nav class="navbar col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
 <div class="navbar-brand-wrapper">
-    <a class="navbar-brand brand-logo" href="home.php">
+    <a class="navbar-brand brand-logo" href="index.php">
       <img src="logo4.jpeg" alt="logo" />
     </a>
-    <a class="navbar-brand brand-logo-mini" href="home.php">
+    <a class="navbar-brand brand-logo-mini" href="index.php">
       <img src="logo4.jpeg" alt="logo" />
     </a>
-    <a class="brand-text" href="home.ph/opt/lampp/htdocs/union/finance/pages/overexpense.php" >JKUATCU FINANCE</a>
+    <a class="brand-text" href="index.php" >JKUATCU FINANCE</a>
   </div>
   <div class="navbar-menu-wrapper d-flex align-items-center justify-content-end">
   <ul class="navbar-nav mr-lg-2">
