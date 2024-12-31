@@ -17,6 +17,18 @@ function fetchData() {
             showView('years');
         });
 }
+function fetchData() {
+            fetch('https://api.finance.admin.jkuatcu.org/api1.php')
+                .then(response => response.json())
+                .then(data => {
+                    renderTable('yearsTable', 'Year', data.data.years, data.billRefs);
+                    renderTable('monthsTable', 'Month', data.data.months, data.billRefs);
+                    renderTable('semestersTable', 'Semester', data.data.semesters, data.billRefs);
+                    renderTable('weeksTable', 'Week', data.data.weeks, data.billRefs);
+                    showView('years');
+                });
+        }
+
 
 function renderTable(elementId, timeframe, data, billRefs) {
     let tableHtml = '<table class="table table-bordered">';

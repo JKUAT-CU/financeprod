@@ -3,6 +3,7 @@ include "navbar.php";
 include "sidebar.php";
 include "styles.php";
 include "scripts.php";
+require_once 'session.php';
 ?>
 
 <script src="js/charts/transactions.js"></script>

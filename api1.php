@@ -12,10 +12,10 @@ $data = [];
 $billRefs = [];
 if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
-        // Cast TransTime to integer
-        $transTime = (int)$row['TransTime'];
+        // Treat TransTime as a string
+        $transTime = $row['TransTime'];
         
-        // Extract year and month
+        // Extract year and month as strings
         $year = substr($transTime, 0, 4);
         $month = (int)substr($transTime, 4, 2);
         $day = substr($transTime, 6, 2);
@@ -58,8 +58,9 @@ if ($result->num_rows > 0) {
         $data['semesters'][$yearSemester][$billRef] += $amount;
         
         // Weekly data
+        $yearInt = (int)$year; // Convert year to integer
         $startOfWeek = new DateTime();
-        $startOfWeek->setISODate($year, $week);
+        $startOfWeek->setISODate($yearInt, $week); // Use the integer year
         $endOfWeek = clone $startOfWeek;
         $endOfWeek->add(new DateInterval('P6D'));
         $yearWeek = $startOfWeek->format('Y-m-d') . ' to ' . $endOfWeek->format('Y-m-d');

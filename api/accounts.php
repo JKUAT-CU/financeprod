@@ -5,7 +5,7 @@ include "styles.php";
 include "scripts.php";
 
 // File path for storing account numbers JSON
-$filePath = 'accounts.json';
+$filePath = '../accounts.json';
 
 // Function to load account numbers from JSON file
 function loadAccountNumbers($filePath) {

@@ -11,15 +11,21 @@ include "scripts.php";
 <!-- Tailwind CSS -->
 <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.1.2/dist/tailwind.min.css" rel="stylesheet">
 <link href="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.0.7/af-2.7.0/datatables.min.css" rel="stylesheet">
+
 <style>
     .table-container {
         overflow-x: auto;
     }
+    .export{
+        padding: 1vh;
+        text-align: right;
+    }
 </style>
+
 
 <body>
 
-    <div class="table-container";>
+   <div class="table-container";>
     <div class="button-class" style="position:inherit";>
         <button class="btn btn-primary" onclick="showView('years')">Yearly View</button>
         <button class="btn btn-primary" onclick="showView('months')">Monthly View</button>
@@ -29,28 +35,49 @@ include "scripts.php";
 
         <div id="years" class="view">
             <h2 class="text-xl font-semibold mb-2">Yearly View</h2>
+            <div class="export">
+            <button class="btn btn-primary" onclick="exportToExcel('yearsTable')">Export to Excel</button>
+            </div>
             <div id="yearsTable"></div>
         </div>
 
         <div id="months" class="view">
             <h2 class="text-xl font-semibold mb-2">Monthly View</h2>
+            <div class="export">
+            <button class="btn btn-primary" onclick="exportToExcel('monthsTable')">Export to Excel</button>
+            </div>
             <div id="monthsTable"></div>
         </div>
 
         <div id="semesters" class="view">
             <h2 class="text-xl font-semibold mb-2">Semester View</h2>
+            <div class="export">
+            <button class="btn btn-primary" onclick="exportToExcel('semesterTable')">Export to Excel</button>
+            </div>
             <div id="semestersTable"></div>
         </div>
 
         <div id="weeks" class="view">
             <h2 class="text-xl font-semibold mb-2">Weekly View</h2>
+            <div class="export">
+            <button class="btn btn-primary" onclick="exportToExcel('weeksTable')">Export to Excel</button>
+            </div>
             <div id="weeksTable"></div>
         </div>
     </div>
+               
 
     <script src="https://cdn.datatables.net/v/dt/jq-3.7.0/dt-2.0.7/af-2.7.0/datatables.min.js"></script>
-    <script src="js/charts/income.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.4/xlsx.full.min.js"></script>
+
+ <script src="js/charts/income.js"></script>
     <script>
+        function exportToExcel(tableId) {
+        const table = document.getElementById(tableId);
+        const wb = XLSX.utils.table_to_book(table);
+        XLSX.writeFile(wb, 'data.xlsx');
+    }
+
         function showView(view) {
             var views = document.getElementsByClassName('view');
             for (var i = 0; i < views.length; i++) {
@@ -59,17 +86,7 @@ include "scripts.php";
             document.getElementById(view).style.display = 'block';
         }
 
-        function fetchData() {
-            fetch('your_php_script.php')
-                .then(response => response.json())
-                .then(data => {
-                    renderTable('yearsTable', 'Year', data.data.years, data.billRefs);
-                    renderTable('monthsTable', 'Month', data.data.months, data.billRefs);
-                    renderTable('semestersTable', 'Semester', data.data.semesters, data.billRefs);
-                    renderTable('weeksTable', 'Week', data.data.weeks, data.billRefs);
-                    showView('years');
-                });
-        }
+
 
         function renderTable(elementId, timeframe, data, billRefs) {
             let tableHtml = '<table class="table table-bordered">';
