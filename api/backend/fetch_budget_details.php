@@ -1,4 +1,18 @@
 <?php
+// Database connection
+$host = 'localhost';
+$user = 'jkuatcu_devs';
+$password = '#God@isAble!#';  // Ensure this is the correct password
+$database = 'jkuatcu_admin';
+
+// Create connection
+$mysqli = new mysqli($host, $user, $password, $database);
+
+// Check for connection errors
+if ($mysqli->connect_error) {
+    die("Connection failed: " . $mysqli->connect_error);
+}
+
 // Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -25,6 +39,9 @@ $response = [
 try {
     // Fetch budget details
     $stmt = $mysqli->prepare("SELECT id, department_id, name, status FROM budgets WHERE id = ?");
+    if (!$stmt) {
+        die("Error preparing statement: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $stmt->bind_result($id, $department_id, $name, $status);
@@ -48,6 +65,9 @@ try {
     // Fetch department name
     if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
+        if (!$stmt) {
+            die("Error preparing statement: " . $mysqli->error);
+        }
         $stmt->bind_param('i', $department_id);
         $stmt->execute();
         $stmt->bind_result($department_name);
@@ -74,6 +94,9 @@ try {
         WHERE e.budget_id = ?
         ORDER BY e.id
     ");
+    if (!$stmt) {
+        die("Error preparing statement: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $stmt->bind_result(
@@ -123,6 +146,9 @@ try {
         FROM assets
         WHERE budget_id = ?
     ");
+    if (!$stmt) {
+        die("Error preparing statement: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $stmt->bind_result(
