@@ -18,16 +18,23 @@ $response = [
     'budgetDetails' => null,
     'events' => [],
     'assets' => [],
-    'department_name' => null,  // Added field for department name
+    'department_name' => null,
 ];
 
 try {
-    // Fetch budget details, including the status and department_id
+    // Fetch budget details
     $stmt = $mysqli->prepare("SELECT * FROM budgets WHERE `id` = ?");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $response['budgetDetails'] = $result->fetch_assoc();
+    $stmt->bind_result($id, $department_id, $name, $status); // Adjust fields as necessary
+    if ($stmt->fetch()) {
+        $response['budgetDetails'] = [
+            'id' => $id,
+            'department_id' => $department_id,
+            'name' => $name,
+            'status' => $status,
+        ];
+    }
     $stmt->close();
 
     // Check if budget exists
@@ -36,21 +43,20 @@ try {
         exit;
     }
 
-    // Fetch department_name from the departments table using the department_id from the budget
-    $departmentId = $response['budgetDetails']['department_id'];  // Assuming department_id is in the budget table
+    // Fetch department name
+    $departmentId = $response['budgetDetails']['department_id'];
     if ($departmentId) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
         $stmt->bind_param('i', $departmentId);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $department = $result->fetch_assoc();
-        if ($department) {
-            $response['department_name'] = $department['name'];
+        $stmt->bind_result($department_name);
+        if ($stmt->fetch()) {
+            $response['department_name'] = $department_name;
         }
         $stmt->close();
     }
 
-    // Fetch events and their items
+    // Fetch events and items
     $stmt = $mysqli->prepare("
         SELECT 
             e.id AS event_id, 
@@ -68,26 +74,24 @@ try {
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->bind_result($event_id, $event_name, $attendees, $item_id, $item_name, $quantity, $cost_per_item, $total_cost);
 
-    while ($row = $result->fetch_assoc()) {
-        $eventId = $row['event_id'];
-        if (!isset($response['events'][$eventId])) {
-            $response['events'][$eventId] = [
-                'event_id' => $row['event_id'],
-                'event_name' => $row['event_name'],
-                'attendees' => $row['attendees'],
+    while ($stmt->fetch()) {
+        if (!isset($response['events'][$event_id])) {
+            $response['events'][$event_id] = [
+                'event_id' => $event_id,
+                'event_name' => $event_name,
+                'attendees' => $attendees,
                 'items' => [],
             ];
         }
-        // Append items for the event
-        if ($row['item_id'] !== null) {
-            $response['events'][$eventId]['items'][] = [
-                'item_id' => $row['item_id'],
-                'item_name' => $row['item_name'],
-                'quantity' => $row['quantity'],
-                'cost_per_item' => $row['cost_per_item'],
-                'total_cost' => $row['total_cost'],
+        if ($item_id !== null) {
+            $response['events'][$event_id]['items'][] = [
+                'item_id' => $item_id,
+                'item_name' => $item_name,
+                'quantity' => $quantity,
+                'cost_per_item' => $cost_per_item,
+                'total_cost' => $total_cost,
             ];
         }
     }
@@ -109,8 +113,17 @@ try {
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $response['assets'] = $result->fetch_all(MYSQLI_ASSOC);
+    $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
+
+    while ($stmt->fetch()) {
+        $response['assets'][] = [
+            'asset_id' => $asset_id,
+            'item_name' => $item_name,
+            'quantity' => $quantity,
+            'cost_per_item' => $cost_per_item,
+            'total_cost' => $total_cost,
+        ];
+    }
     $stmt->close();
 
     // Pass data to frontend
