@@ -250,164 +250,168 @@ $(document).ready(function () {
     return;
 }
 
-$('#submitBudgetButton').on('click', function () {
-    submitBudget(departmentName);  // Pass departmentName when submitting the budget
-});
+    // Submit button functionality
+    $('#submitBudgetButton').on('click', function () {
+        submitBudget(departmentName);  // Pass departmentName when submitting the budget
+    });
 
-async function submitBudget(departmentName) {
-    try {
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF();
-        const currentYear = new Date().getFullYear();
+    async function submitBudget(departmentName) {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF();
+            const currentYear = new Date().getFullYear();
 
-        // Fetch letterhead image
-        const letterheadImage = await fetch("assets/images/letterhead.gif")
-            .then(res => res.ok ? res.blob() : null)
-            .then(blob => {
-                if (blob) {
-                    return new Promise(resolve => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result);
-                        reader.readAsDataURL(blob);
-                    });
-                }
-                return null;
-            })
-            .catch(() => null);
+            // Fetch letterhead image
+            const letterheadImage = await fetch("assets/images/letterhead.gif")
+                .then(res => res.ok ? res.blob() : null)
+                .then(blob => {
+                    if (blob) {
+                        return new Promise(resolve => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result);
+                            reader.readAsDataURL(blob);
+                        });
+                    }
+                    return null;
+                })
+                .catch(() => null);
 
-        // Add header
-        if (letterheadImage) {
-            pdf.addImage(letterheadImage, "GIF", 10, 10, 190, 30);
-        }
+            // Add department and year to PDF
+            pdf.setFontSize(16);
+            pdf.text(`${departmentName} Budget for the Year ${currentYear}`, 10, 50);
+            pdf.setFontSize(10);
+            pdf.text(`Date: ${new Date().toLocaleDateString()}`, 10, 60);
 
-        pdf.setFontSize(16);
-        pdf.text(`${departmentName} Budget for the Year ${currentYear}`, 10, 50);
-        pdf.setFontSize(10);
-        pdf.text(`Date: ${new Date().toLocaleDateString()}`, 10, 60);
-
-        let currentY = 70;
-        let grandTotal = 0;
-        let financeTotal = 0;
-
-        // Event Groups
-        const eventGroups = [];
-        $('#eventsSection .event-group').each(function () {
-            const eventName = $(this).data('event-name') || "Unnamed Event";
-            const items = [];
-            $(this).find('.item-row').each(function () {
-                const itemName = $(this).find('td:first').text() || "Unnamed Item";
-                const quantity = $(this).find('.item-quantity').text() || 0;
-                const costPerItem = $(this).find('.item-cost').text() || 0;
-                const totalCost = $(this).find('.total-cost').text() || 0;
-                const financeCost = parseFloat($(this).find('.finance-cost').val()) || 0;
-                const comment = $(this).find('.comment').val() || "";
-
-                items.push({
-                    item_name: itemName,
-                    quantity: quantity,
-                    cost_per_item: costPerItem,
-                    total_cost: totalCost,
-                    finance_cost: financeCost,
-                    comment: comment
-                });
-
-                financeTotal += financeCost;
-            });
-
-            const subtotal = items.reduce((sum, item) => sum + parseFloat(item.total_cost || 0), 0);
-            grandTotal += subtotal;
-            eventGroups.push({ event_name: eventName, items, subtotal });
-        });
-
-        // Generate Event Tables
-        eventGroups.forEach(event => {
-            if (currentY + 30 > pdf.internal.pageSize.height) {
-                pdf.addPage();
-                currentY = 10;
+            if (letterheadImage) {
+                pdf.addImage(letterheadImage, "GIF", 10, 10, 190, 30);
             }
 
+            let currentY = 70;
+
+            // Collect event data for the PDF
+            const eventGroups = [];
+            const assetGroups = [];
+            let grandTotal = 0;
+            let financeTotal = 0;
+
+            // Iterate through events to prepare the data
+            $('#eventsSection .event-group').each(function () {
+                const eventName = $(this).data('event-name') || "Unnamed Event";
+                const items = [];
+                $(this).find('.item-row').each(function () {
+                    const itemName = $(this).find('td:first').text() || "Unnamed Item";
+                    const quantity = $(this).find('.item-quantity').text() || 0;
+                    const costPerItem = $(this).find('.item-cost').text() || 0;
+                    const totalCost = $(this).find('.total-cost').text() || 0;
+                    const financeCost = parseFloat($(this).find('.finance-cost').val()) || 0;
+                    const comment = $(this).find('.comment').val() || "";
+
+                    items.push({
+                        item_name: itemName,
+                        quantity: quantity,
+                        cost_per_item: costPerItem,
+                        total_cost: totalCost,
+                        finance_cost: financeCost,
+                        comment: comment
+                    });
+                    financeTotal += financeCost;
+                });
+
+                const subtotal = items.reduce((sum, item) => sum + parseFloat(item.total_cost), 0);
+                grandTotal += subtotal;
+
+                eventGroups.push({ event_name: eventName, items, subtotal });
+            });
+
+            // Generate event details table in PDF
+            eventGroups.forEach(event => {
+                pdf.setFontSize(12);
+                pdf.text(`Event: ${event.event_name}`, 10, currentY);
+
+                const eventTableData = event.items.map(item => [
+                    item.item_name,
+                    item.quantity,
+                    (parseFloat(item.cost_per_item) || 0).toFixed(2),
+                    (parseFloat(item.total_cost) || 0).toFixed(2),
+                    (parseFloat(item.finance_cost) || 0).toFixed(2),
+                    item.comment
+                ]);
+
+                pdf.autoTable({
+                    head: [['Item', 'Quantity', 'Cost/Item', 'Total Cost', 'FAC', 'Comment']],
+                    body: eventTableData,
+                    startY: currentY + 10,
+                    theme: 'grid',
+                    headStyles: { fillColor: [128, 0, 0] },
+                    bodyStyles: { textColor: [0, 0, 0] },
+                    alternateRowStyles: { fillColor: [245, 245, 245] },
+                });
+
+                currentY = pdf.lastAutoTable.finalY + 10;
+                pdf.setFontSize(12);
+                pdf.text(`Subtotal: ${event.subtotal.toFixed(2)}`, 10, currentY);
+                currentY += 10;
+            });
+
+            // Add finance totals
             pdf.setFontSize(12);
-            pdf.text(`Event: ${event.event_name}`, 10, currentY);
-            currentY += 10;
+            pdf.text(`Finance Total: ${financeTotal.toFixed(2)}`, 10, currentY + 10);
 
-            const eventTableData = event.items.map(item => [
-                item.item_name,
-                item.quantity,
-                parseFloat(item.cost_per_item).toFixed(2),
-                parseFloat(item.total_cost).toFixed(2),
-                parseFloat(item.finance_cost).toFixed(2),
-                item.comment
-            ]);
+            // Add asset data to the PDF
+currentY = pdf.lastAutoTable.finalY + 20;
+pdf.setFontSize(12);
+pdf.text("Asset Data", 10, currentY);
 
-            pdf.autoTable({
-                head: [['Item', 'Quantity', 'Cost/Item', 'Total Cost', 'FAC', 'Comment']],
-                body: eventTableData,
-                startY: currentY,
-                theme: 'grid',
-            });
+$('#assetsSection table').each(function () {
+    const items = [];
+    $(this).find('.item-row').each(function () {
+        const itemName = $(this).find('td:first').text() || "Unnamed Item";
+        const quantity = $(this).find('.item-quantity').text() || 0;
+        const costPerItem = $(this).find('.item-cost').text() || 0;
+        const totalCost = $(this).find('.total-cost').text() || 0;
+        const financeCost = parseFloat($(this).find('.finance-cost').val()) || 0;
+        const comment = $(this).find('.comment').val() || "";
 
-            currentY = pdf.lastAutoTable.finalY + 10;
-            pdf.text(`Subtotal: ${event.subtotal.toFixed(2)}`, 10, currentY);
-            currentY += 10;
+        items.push({
+            asset_name: itemName,
+            quantity: quantity,
+            cost_per_item: costPerItem,
+            total_cost: totalCost,
+            finance_cost: financeCost,
+            comment: comment
         });
+        financeTotal += financeCost;
+    });
 
-        // Asset Groups
-        const assetGroups = [];
-        $('#assetsSection .item-row').each(function () {
-            const itemName = $(this).find('td:first').text() || "Unnamed Item";
-            const quantity = $(this).find('.item-quantity').text() || 0;
-            const costPerItem = $(this).find('.item-cost').text() || 0;
-            const financeCost = parseFloat($(this).find('.finance-cost').val()) || 0;
-            const comment = $(this).find('.comment').val() || "";
+    const assetTableData = items.map(asset => [
+        asset.asset_name,
+        asset.quantity,
+        (parseFloat(asset.cost_per_item) || 0).toFixed(2),
+        (parseFloat(asset.quantity) * parseFloat(asset.cost_per_item) || 0).toFixed(2),
+        (parseFloat(asset.finance_cost) || 0).toFixed(2),
+        asset.comment
+    ]);
 
-            assetGroups.push({
-                asset_name: itemName,
-                quantity: quantity,
-                cost_per_item: costPerItem,
-                total_cost: quantity * costPerItem,
-                finance_cost: financeCost,
-                comment: comment
-            });
+    pdf.autoTable({
+        head: [['Asset Name', 'Quantity', 'Cost/Item', 'Total Cost', 'FAC', 'Comment']],
+        body: assetTableData,
+        startY: currentY + 10,
+        theme: 'grid',
+        headStyles: { fillColor: [128, 0, 0] },
+        bodyStyles: { textColor: [0, 0, 0] },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+    });
 
-            financeTotal += financeCost;
-        });
+    currentY = pdf.lastAutoTable.finalY + 10;
+});
 
-        // Generate Asset Table
-        if (currentY + 30 > pdf.internal.pageSize.height) {
-            pdf.addPage();
-            currentY = 10;
+
+            // Save the PDF with department name as filename
+            pdf.save(`${departmentName}_budget.pdf`);
+        } catch (error) {
+            console.error("Error generating PDF:", error);
         }
-        pdf.setFontSize(12);
-        pdf.text("Assets Summary", 10, currentY);
-
-        const assetTableData = assetGroups.map(asset => [
-            asset.asset_name,
-            asset.quantity,
-            parseFloat(asset.cost_per_item).toFixed(2),
-            parseFloat(asset.total_cost).toFixed(2),
-            parseFloat(asset.finance_cost).toFixed(2),
-            asset.comment
-        ]);
-
-        pdf.autoTable({
-            head: [['Asset Name', 'Quantity', 'Cost/Item', 'Total Cost', 'FAC', 'Comment']],
-            body: assetTableData,
-            startY: currentY + 10,
-            theme: 'grid',
-        });
-
-        // Final Summary
-        currentY = pdf.lastAutoTable.finalY + 20;
-        pdf.text(`Finance Total: ${financeTotal.toFixed(2)}`, 10, currentY);
-        pdf.text(`Grand Total: ${grandTotal.toFixed(2)}`, 10, currentY + 10);
-
-        // Save the PDF
-        pdf.save(`${departmentName}_budget.pdf`);
-    } catch (error) {
-        console.error("Error generating PDF:", error);
     }
-}
-  
 });
 </script>
 </body>
