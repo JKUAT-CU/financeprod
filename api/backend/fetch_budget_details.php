@@ -1,4 +1,5 @@
 <?php
+// Enable error reporting for debugging
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -23,10 +24,11 @@ $response = [
 
 try {
     // Fetch budget details
-    $stmt = $mysqli->prepare("SELECT * FROM budgets WHERE `id` = ?");
+    $stmt = $mysqli->prepare("SELECT id, department_id, name, status FROM budgets WHERE id = ?");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result($id, $department_id, $name, $status); // Adjust fields as necessary
+    $stmt->bind_result($id, $department_id, $name, $status);
+
     if ($stmt->fetch()) {
         $response['budgetDetails'] = [
             'id' => $id,
@@ -44,19 +46,19 @@ try {
     }
 
     // Fetch department name
-    $departmentId = $response['budgetDetails']['department_id'];
-    if ($departmentId) {
+    if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
-        $stmt->bind_param('i', $departmentId);
+        $stmt->bind_param('i', $department_id);
         $stmt->execute();
         $stmt->bind_result($department_name);
+
         if ($stmt->fetch()) {
             $response['department_name'] = $department_name;
         }
         $stmt->close();
     }
 
-    // Fetch events and items
+    // Fetch events and their items
     $stmt = $mysqli->prepare("
         SELECT 
             e.id AS event_id, 
@@ -74,7 +76,16 @@ try {
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result($event_id, $event_name, $attendees, $item_id, $item_name, $quantity, $cost_per_item, $total_cost);
+    $stmt->bind_result(
+        $event_id,
+        $event_name,
+        $attendees,
+        $item_id,
+        $item_name,
+        $quantity,
+        $cost_per_item,
+        $total_cost
+    );
 
     while ($stmt->fetch()) {
         if (!isset($response['events'][$event_id])) {
@@ -85,6 +96,7 @@ try {
                 'items' => [],
             ];
         }
+
         if ($item_id !== null) {
             $response['events'][$event_id]['items'][] = [
                 'item_id' => $item_id,
@@ -103,17 +115,23 @@ try {
     // Fetch assets
     $stmt = $mysqli->prepare("
         SELECT 
-            a.id AS asset_id, 
-            a.item_name, 
-            a.quantity, 
-            a.cost_per_item, 
-            a.total_cost
-        FROM assets a
-        WHERE a.budget_id = ?
+            id AS asset_id, 
+            item_name, 
+            quantity, 
+            cost_per_item, 
+            total_cost
+        FROM assets
+        WHERE budget_id = ?
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
+    $stmt->bind_result(
+        $asset_id,
+        $item_name,
+        $quantity,
+        $cost_per_item,
+        $total_cost
+    );
 
     while ($stmt->fetch()) {
         $response['assets'][] = [
@@ -126,7 +144,7 @@ try {
     }
     $stmt->close();
 
-    // Pass data to frontend
+    // Send response
     header('Content-Type: application/json');
     echo json_encode($response);
 
