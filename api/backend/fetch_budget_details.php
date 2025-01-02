@@ -1,34 +1,27 @@
 <?php
-// Database connection
-$host = 'localhost';
-$user = 'jkuatcu_devs';
-$password = '#God@isAble!#';  // Ensure this is the correct password
-$database = 'jkuatcu_admin';
+// Load environment variables (use dotenv if needed)
+$host = getenv('DB_HOST') ?: 'localhost';
+$user = getenv('DB_USER') ?: 'jkuatcu_devs';
+$password = getenv('DB_PASS') ?: '#God@isAble!#';
+$database = getenv('DB_NAME') ?: 'jkuatcu_admin';
 
-// Create connection
+// Database connection
 $mysqli = new mysqli($host, $user, $password, $database);
 
-// Check for connection errors
+// Check connection
 if ($mysqli->connect_error) {
-    die("Connection failed: " . $mysqli->connect_error);
-}
-
-// Enable error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Include database connection
-require_once 'db.php';
-
-// Validate and fetch budgetId
-$budgetId = filter_input(INPUT_GET, 'budgetId', FILTER_VALIDATE_INT);
-if (!$budgetId) {
-    echo json_encode(["error" => "Invalid or missing budgetId parameter"]);
+    http_response_code(500);
+    echo json_encode(["error" => "Database connection failed"]);
     exit;
 }
 
-// Initialize the response structure
+// Validate input
+$budgetId = filter_input(INPUT_GET, 'budgetId', FILTER_VALIDATE_INT);
+if (!$budgetId) {
+    echo json_encode(["error" => "Invalid or missing budgetId"]);
+    exit;
+}
+
 $response = [
     'budgetDetails' => null,
     'events' => [],
@@ -39,52 +32,38 @@ $response = [
 try {
     // Fetch budget details
     $stmt = $mysqli->prepare("SELECT id, department_id, name, status FROM budgets WHERE id = ?");
-    if (!$stmt) {
-        die("Error preparing statement: " . $mysqli->error);
-    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result($id, $department_id, $name, $status);
+    $result = $stmt->get_result();
 
-    if ($stmt->fetch()) {
-        $response['budgetDetails'] = [
-            'id' => $id,
-            'department_id' => $department_id,
-            'name' => $name,
-            'status' => $status,
-        ];
-    }
-    $stmt->close();
-
-    // Check if budget exists
-    if (!$response['budgetDetails']) {
+    if ($budget = $result->fetch_assoc()) {
+        $response['budgetDetails'] = $budget;
+    } else {
         echo json_encode(["error" => "Budget not found"]);
         exit;
     }
 
+    $department_id = $budget['department_id'];
+
     // Fetch department name
     if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
-        if (!$stmt) {
-            die("Error preparing statement: " . $mysqli->error);
-        }
         $stmt->bind_param('i', $department_id);
         $stmt->execute();
         $stmt->bind_result($department_name);
-
         if ($stmt->fetch()) {
             $response['department_name'] = $department_name;
         }
         $stmt->close();
     }
 
-    // Fetch events and their items
+    // Fetch events and items
     $stmt = $mysqli->prepare("
         SELECT 
             e.id AS event_id, 
             e.event_name, 
-            e.attendees, 
-            ei.id AS item_id, 
+            e.attendees,
+            ei.id AS item_id,
             ei.item_name, 
             ei.quantity, 
             ei.cost_per_item, 
@@ -94,43 +73,30 @@ try {
         WHERE e.budget_id = ?
         ORDER BY e.id
     ");
-    if (!$stmt) {
-        die("Error preparing statement: " . $mysqli->error);
-    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result(
-        $event_id,
-        $event_name,
-        $attendees,
-        $item_id,
-        $item_name,
-        $quantity,
-        $cost_per_item,
-        $total_cost
-    );
+    $result = $stmt->get_result();
 
-    while ($stmt->fetch()) {
-        if (!isset($response['events'][$event_id])) {
-            $response['events'][$event_id] = [
-                'event_id' => $event_id,
-                'event_name' => $event_name,
-                'attendees' => $attendees,
+    while ($row = $result->fetch_assoc()) {
+        $eventId = $row['event_id'];
+        if (!isset($response['events'][$eventId])) {
+            $response['events'][$eventId] = [
+                'event_id' => $eventId,
+                'event_name' => $row['event_name'],
+                'attendees' => $row['attendees'],
                 'items' => [],
             ];
         }
-
-        if ($item_id !== null) {
-            $response['events'][$event_id]['items'][] = [
-                'item_id' => $item_id,
-                'item_name' => $item_name,
-                'quantity' => $quantity,
-                'cost_per_item' => $cost_per_item,
-                'total_cost' => $total_cost,
+        if ($row['item_id']) {
+            $response['events'][$eventId]['items'][] = [
+                'item_id' => $row['item_id'],
+                'item_name' => $row['item_name'],
+                'quantity' => $row['quantity'],
+                'cost_per_item' => $row['cost_per_item'],
+                'total_cost' => $row['total_cost'],
             ];
         }
     }
-    $stmt->close();
 
     // Normalize events array
     $response['events'] = array_values($response['events']);
@@ -146,35 +112,20 @@ try {
         FROM assets
         WHERE budget_id = ?
     ");
-    if (!$stmt) {
-        die("Error preparing statement: " . $mysqli->error);
-    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $stmt->bind_result(
-        $asset_id,
-        $item_name,
-        $quantity,
-        $cost_per_item,
-        $total_cost
-    );
+    $result = $stmt->get_result();
 
-    while ($stmt->fetch()) {
-        $response['assets'][] = [
-            'asset_id' => $asset_id,
-            'item_name' => $item_name,
-            'quantity' => $quantity,
-            'cost_per_item' => $cost_per_item,
-            'total_cost' => $total_cost,
-        ];
+    while ($asset = $result->fetch_assoc()) {
+        $response['assets'][] = $asset;
     }
-    $stmt->close();
 
-    // Send response
+    // Output JSON response
     header('Content-Type: application/json');
     echo json_encode($response);
 
 } catch (Exception $e) {
     error_log("Error: " . $e->getMessage());
+    http_response_code(500);
     echo json_encode(["error" => "An unexpected error occurred"]);
 }
