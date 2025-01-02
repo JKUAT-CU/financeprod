@@ -1,5 +1,4 @@
 <?php
-// Load environment variables (use dotenv if needed)
 $host = getenv('DB_HOST') ?: 'localhost';
 $user = getenv('DB_USER') ?: 'jkuatcu_devs';
 $password = getenv('DB_PASS') ?: '#God@isAble!#';
@@ -67,7 +66,7 @@ try {
             ei.item_name, 
             ei.quantity, 
             ei.cost_per_item, 
-            ei.total_cost
+            (ei.quantity * ei.cost_per_item) AS total_cost
         FROM events e
         LEFT JOIN event_items ei ON e.id = ei.event_id
         WHERE e.budget_id = ?
@@ -84,48 +83,50 @@ try {
                 'event_id' => $eventId,
                 'event_name' => $row['event_name'],
                 'attendees' => $row['attendees'],
-                'items' => [],
+                'items' => []
             ];
         }
-        if ($row['item_id']) {
-            $response['events'][$eventId]['items'][] = [
-                'item_id' => $row['item_id'],
-                'item_name' => $row['item_name'],
-                'quantity' => $row['quantity'],
-                'cost_per_item' => $row['cost_per_item'],
-                'total_cost' => $row['total_cost'],
-            ];
-        }
+
+        $response['events'][$eventId]['items'][] = [
+            'item_name' => $row['item_name'],
+            'quantity' => $row['quantity'],
+            'cost_per_item' => $row['cost_per_item'],
+            'total_cost' => $row['total_cost'],
+            'finance_cost' => null,
+            'comment' => null
+        ];
     }
 
-    // Normalize events array
+    // Re-index events to match the frontend's structure
     $response['events'] = array_values($response['events']);
 
     // Fetch assets
     $stmt = $mysqli->prepare("
         SELECT 
-            id AS asset_id, 
-            item_name, 
-            quantity, 
-            cost_per_item, 
-            total_cost
-        FROM assets
-        WHERE budget_id = ?
+            a.asset_name, 
+            a.quantity, 
+            a.cost_per_item,
+            (a.quantity * a.cost_per_item) AS total_cost
+        FROM assets a
+        WHERE a.budget_id = ?
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $result = $stmt->get_result();
 
-    while ($asset = $result->fetch_assoc()) {
-        $response['assets'][] = $asset;
+    while ($row = $result->fetch_assoc()) {
+        $response['assets'][] = [
+            'asset_name' => $row['asset_name'],
+            'quantity' => $row['quantity'],
+            'cost_per_item' => $row['cost_per_item'],
+            'total_cost' => $row['total_cost'],
+            'finance_cost' => null,
+            'comment' => null
+        ];
     }
 
-    // Output JSON response
-    header('Content-Type: application/json');
     echo json_encode($response);
-
 } catch (Exception $e) {
-    error_log("Error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(["error" => "An unexpected error occurred"]);
+    echo json_encode(["error" => "An unexpected error occurred: " . $e->getMessage()]);
 }
