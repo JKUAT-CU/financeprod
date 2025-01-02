@@ -30,7 +30,7 @@ $response = [
 
 try {
     // Fetch budget details
-    $stmt = $mysqli->prepare("SELECT id, department_id, name, status FROM budgets WHERE id = ?");
+    $stmt = $mysqli->prepare("SELECT id, department_id, budget_name, status FROM budgets WHERE id = ?");
     if (!$stmt) {
         throw new Exception("Prepare failed for budget details: " . $mysqli->error);
     }
