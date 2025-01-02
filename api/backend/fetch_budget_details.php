@@ -31,6 +31,9 @@ $response = [
 try {
     // Fetch budget details
     $stmt = $mysqli->prepare("SELECT id, department_id, name, status FROM budgets WHERE id = ?");
+    if (!$stmt) {
+        throw new Exception("Prepare failed for budget details: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -47,6 +50,9 @@ try {
     // Fetch department name
     if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
+        if (!$stmt) {
+            throw new Exception("Prepare failed for department name: " . $mysqli->error);
+        }
         $stmt->bind_param('i', $department_id);
         $stmt->execute();
         $stmt->bind_result($department_name);
@@ -72,6 +78,9 @@ try {
         WHERE e.budget_id = ?
         ORDER BY e.id
     ");
+    if (!$stmt) {
+        throw new Exception("Prepare failed for events and items: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -110,6 +119,9 @@ try {
         FROM assets a
         WHERE a.budget_id = ?
     ");
+    if (!$stmt) {
+        throw new Exception("Prepare failed for assets: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -130,3 +142,4 @@ try {
     http_response_code(500);
     echo json_encode(["error" => "An unexpected error occurred: " . $e->getMessage()]);
 }
+?>
