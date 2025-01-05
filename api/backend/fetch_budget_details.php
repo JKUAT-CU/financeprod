@@ -23,7 +23,7 @@ $response = [
 
 try {
     // Fetch budget details
-    $stmt = $mysqli->prepare("SELECT id, department_id, status FROM budgets WHERE `id` = ?");
+    $stmt = $mysqli->prepare("SELECT id, department_id, status FROM budgets WHERE id = ?");
     if (!$stmt) {
         throw new Exception("Failed to prepare statement for fetching budget details: " . $mysqli->error);
     }
@@ -35,7 +35,6 @@ try {
             'id' => $id,
             'department_id' => $department_id,
             'status' => $status,
-            
         ];
     }
     $stmt->close();
@@ -110,13 +109,13 @@ try {
     // Fetch assets
     $stmt = $mysqli->prepare("
         SELECT 
-            a.id AS asset_id, 
-            a.item_name, 
-            a.quantity, 
-            a.cost_per_item, 
-            a.total_cost
-        FROM assets a
-        WHERE a.budget_id = ?
+            id AS asset_id, 
+            item_name, 
+            quantity, 
+            cost_per_item, 
+            total_cost
+        FROM assets
+        WHERE budget_id = ?
     ");
     if (!$stmt) {
         throw new Exception("Failed to prepare statement for fetching assets: " . $mysqli->error);
@@ -125,6 +124,10 @@ try {
     $stmt->execute();
     $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
     while ($stmt->fetch()) {
+        if (empty($item_name)) {
+            error_log("Asset with ID $asset_id has an empty or undefined item_name.");
+            $item_name = "Unknown"; // Fallback if item_name is NULL or empty
+        }
         $response['assets'][] = [
             'id' => $asset_id,
             'item_name' => $item_name,
