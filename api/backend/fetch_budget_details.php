@@ -18,16 +18,25 @@ $response = [
     'budgetDetails' => null,
     'events' => [],
     'assets' => [],
-    'department_name' => null,  // Added field for department name
+    'department_name' => null, // Added field for department name
 ];
 
 try {
     // Fetch budget details, including the status and department_id
-    $stmt = $mysqli->prepare("SELECT * FROM budgets WHERE `id` = ?");
+    $stmt = $mysqli->prepare("SELECT id, department_id, status, other_columns FROM budgets WHERE `id` = ?");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $response['budgetDetails'] = $result->fetch_assoc();
+
+    // Bind result variables
+    $stmt->bind_result($id, $department_id, $status, $other_columns);
+    if ($stmt->fetch()) {
+        $response['budgetDetails'] = [
+            'id' => $id,
+            'department_id' => $department_id,
+            'status' => $status,
+            'other_columns' => $other_columns
+        ];
+    }
     $stmt->close();
 
     // Check if budget exists
@@ -37,15 +46,14 @@ try {
     }
 
     // Fetch department_name from the departments table using the department_id from the budget
-    $departmentId = $response['budgetDetails']['department_id'];  // Assuming department_id is in the budget table
-    if ($departmentId) {
+    if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
-        $stmt->bind_param('i', $departmentId);
+        $stmt->bind_param('i', $department_id);
         $stmt->execute();
-        $result = $stmt->get_result();
-        $department = $result->fetch_assoc();
-        if ($department) {
-            $response['department_name'] = $department['name'];
+
+        $stmt->bind_result($department_name);
+        if ($stmt->fetch()) {
+            $response['department_name'] = $department_name;
         }
         $stmt->close();
     }
@@ -68,26 +76,26 @@ try {
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
 
-    while ($row = $result->fetch_assoc()) {
-        $eventId = $row['event_id'];
-        if (!isset($response['events'][$eventId])) {
-            $response['events'][$eventId] = [
-                'event_id' => $row['event_id'],
-                'event_name' => $row['event_name'],
-                'attendees' => $row['attendees'],
+    // Bind result variables
+    $stmt->bind_result($event_id, $event_name, $attendees, $item_id, $item_name, $quantity, $cost_per_item, $total_cost);
+    while ($stmt->fetch()) {
+        if (!isset($response['events'][$event_id])) {
+            $response['events'][$event_id] = [
+                'event_id' => $event_id,
+                'event_name' => $event_name,
+                'attendees' => $attendees,
                 'items' => [],
             ];
         }
         // Append items for the event
-        if ($row['item_id'] !== null) {
-            $response['events'][$eventId]['items'][] = [
-                'item_id' => $row['item_id'],
-                'item_name' => $row['item_name'],
-                'quantity' => $row['quantity'],
-                'cost_per_item' => $row['cost_per_item'],
-                'total_cost' => $row['total_cost'],
+        if ($item_id !== null) {
+            $response['events'][$event_id]['items'][] = [
+                'item_id' => $item_id,
+                'item_name' => $item_name,
+                'quantity' => $quantity,
+                'cost_per_item' => $cost_per_item,
+                'total_cost' => $total_cost,
             ];
         }
     }
@@ -109,8 +117,17 @@ try {
     ");
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-    $result = $stmt->get_result();
-    $response['assets'] = $result->fetch_all(MYSQLI_ASSOC);
+
+    $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
+    while ($stmt->fetch()) {
+        $response['assets'][] = [
+            'asset_id' => $asset_id,
+            'item_name' => $item_name,
+            'quantity' => $quantity,
+            'cost_per_item' => $cost_per_item,
+            'total_cost' => $total_cost,
+        ];
+    }
     $stmt->close();
 
     // Pass data to frontend
@@ -121,3 +138,4 @@ try {
     error_log("Error: " . $e->getMessage());
     echo json_encode(["error" => "An unexpected error occurred"]);
 }
+?>
