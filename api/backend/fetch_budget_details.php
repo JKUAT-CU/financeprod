@@ -18,23 +18,24 @@ $response = [
     'budgetDetails' => null,
     'events' => [],
     'assets' => [],
-    'department_name' => null, // Added field for department name
+    'department_name' => null,
 ];
 
 try {
-    // Fetch budget details, including the status and department_id
-    $stmt = $mysqli->prepare("SELECT id, department_id, status, other_columns FROM budgets WHERE `id` = ?");
+    // Fetch budget details
+    $stmt = $mysqli->prepare("SELECT id, department_id, status FROM budgets WHERE `id` = ?");
+    if (!$stmt) {
+        throw new Exception("Failed to prepare statement for fetching budget details: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-
-    // Bind result variables
-    $stmt->bind_result($id, $department_id, $status, $other_columns);
+    $stmt->bind_result($id, $department_id, $status);
     if ($stmt->fetch()) {
         $response['budgetDetails'] = [
             'id' => $id,
             'department_id' => $department_id,
             'status' => $status,
-            'other_columns' => $other_columns
+            
         ];
     }
     $stmt->close();
@@ -45,12 +46,14 @@ try {
         exit;
     }
 
-    // Fetch department_name from the departments table using the department_id from the budget
+    // Fetch department name
     if ($department_id) {
         $stmt = $mysqli->prepare("SELECT name FROM departments WHERE id = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare statement for fetching department name: " . $mysqli->error);
+        }
         $stmt->bind_param('i', $department_id);
         $stmt->execute();
-
         $stmt->bind_result($department_name);
         if ($stmt->fetch()) {
             $response['department_name'] = $department_name;
@@ -74,10 +77,11 @@ try {
         WHERE e.budget_id = ?
         ORDER BY e.id
     ");
+    if (!$stmt) {
+        throw new Exception("Failed to prepare statement for fetching events: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-
-    // Bind result variables
     $stmt->bind_result($event_id, $event_name, $attendees, $item_id, $item_name, $quantity, $cost_per_item, $total_cost);
     while ($stmt->fetch()) {
         if (!isset($response['events'][$event_id])) {
@@ -88,7 +92,6 @@ try {
                 'items' => [],
             ];
         }
-        // Append items for the event
         if ($item_id !== null) {
             $response['events'][$event_id]['items'][] = [
                 'item_id' => $item_id,
@@ -115,9 +118,11 @@ try {
         FROM assets a
         WHERE a.budget_id = ?
     ");
+    if (!$stmt) {
+        throw new Exception("Failed to prepare statement for fetching assets: " . $mysqli->error);
+    }
     $stmt->bind_param('i', $budgetId);
     $stmt->execute();
-
     $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
     while ($stmt->fetch()) {
         $response['assets'][] = [
@@ -136,6 +141,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Error: " . $e->getMessage());
-    echo json_encode(["error" => "An unexpected error occurred"]);
+    echo json_encode(["error" => $e->getMessage()]);
 }
 ?>
