@@ -110,7 +110,7 @@ try {
     $stmt = $mysqli->prepare("
         SELECT 
             id AS asset_id, 
-            item_names, 
+            item_name, 
             quantity, 
             cost_per_item, 
             total_cost
@@ -124,18 +124,22 @@ try {
     $stmt->execute();
     $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
     while ($stmt->fetch()) {
+        // Debugging log
+        error_log("Fetched Asset -> ID: $asset_id, Item Name: " . ($item_name ?? 'NULL') . ", Quantity: $quantity, Cost Per Item: $cost_per_item, Total Cost: $total_cost");
+    
         if (empty($item_name)) {
             error_log("Asset with ID $asset_id has an empty or undefined item_name.");
             $item_name = "Unknown"; // Fallback if item_name is NULL or empty
         }
         $response['assets'][] = [
             'id' => $asset_id,
-            'item_names' => $item_name,
+            'item_name' => $item_name,
             'quantity' => $quantity,
             'cost_per_item' => $cost_per_item,
             'total_cost' => $total_cost,
         ];
     }
+    
     $stmt->close();
 
     // Pass data to frontend

@@ -232,7 +232,7 @@ $(document).ready(function () {
             const totalCost = (parseFloat(asset.quantity) * parseFloat(asset.cost_per_item)).toFixed(2);
             tableHtml += `
                 <tr>
-                    <td>${asset.asset_name}</td>
+                    <td>${asset.item_name}</td>
                     <td>${asset.quantity}</td>
                     <td>${asset.cost_per_item}</td>
                     <td>${totalCost}</td>
