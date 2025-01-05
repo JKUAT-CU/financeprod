@@ -126,7 +126,7 @@ try {
     $stmt->bind_result($asset_id, $item_name, $quantity, $cost_per_item, $total_cost);
     while ($stmt->fetch()) {
         $response['assets'][] = [
-            'asset_id' => $asset_id,
+            'id' => $asset_id,
             'item_name' => $item_name,
             'quantity' => $quantity,
             'cost_per_item' => $cost_per_item,
