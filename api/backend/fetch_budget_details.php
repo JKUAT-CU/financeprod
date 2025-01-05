@@ -110,7 +110,7 @@ try {
     $stmt = $mysqli->prepare("
         SELECT 
             id AS asset_id, 
-            item_name, 
+            item_names, 
             quantity, 
             cost_per_item, 
             total_cost
@@ -130,7 +130,7 @@ try {
         }
         $response['assets'][] = [
             'id' => $asset_id,
-            'item_name' => $item_name,
+            'item_names' => $item_name,
             'quantity' => $quantity,
             'cost_per_item' => $cost_per_item,
             'total_cost' => $total_cost,
