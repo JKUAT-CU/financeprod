@@ -11,7 +11,7 @@ try {
             d.id AS department_id, 
             d.name AS department_name, 
             b.id AS budget_id, 
-            b.total_amount, 
+            b.grand_total, 
             b.status
         FROM departments d
         JOIN budgets b ON d.id = b.department_id
