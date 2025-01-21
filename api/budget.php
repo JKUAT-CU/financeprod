@@ -6,16 +6,7 @@
     <title>Finance Dashboard</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .status-pending {
-            color: orange;
-            font-weight: bold;
-        }
-        .status-approved {
-            color: green;
-            font-weight: bold;
-        }
-        .status-rejected {
-            color: red;
+        .font-bold {
             font-weight: bold;
         }
     </style>
@@ -30,7 +21,7 @@
                 <th onclick="sortTable(1)">Semester</th>
                 <th onclick="sortTable(2)">Budget Amount</th>
                 <th onclick="sortTable(3)">Status</th>
-                <th>Action</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="departments-list">
@@ -45,7 +36,7 @@
 <script>
     async function fetchBudgets() {
         try {
-            const response = await fetch('backend/fetch_budgets.php');
+            const response = await fetch('backend/fetch_budgets.php'); // Replace with your endpoint
             const budgets = await response.json();
 
             const groupedData = groupByDepartment(budgets);
@@ -68,24 +59,22 @@
                     semesterTotals[row.semester] = 
                         (semesterTotals[row.semester] || 0) + parseFloat(row.grand_total);
 
-                    const statusClass = getStatusClass(row.status);
+                    const statusBadge = getStatusBadge(row.status);
 
                     tableBody.innerHTML += `
                         <tr>
                             <td>${row.department_name}</td>
                             <td>${row.semester}</td>
                             <td>${parseFloat(row.grand_total).toFixed(2)}</td>
-                            <td class="${statusClass}">${row.status}</td>
+                            <td>${statusBadge}</td>
                             <td>
-                                <button class="btn btn-primary btn-sm" onclick="handleAction('${row.budget_id}')">
-                                    Action
-                                </button>
+                                <button class="btn btn-primary" onclick="viewBudget(${row.budget_id})">View Details</button>
                             </td>
                         </tr>`;
                 });
 
                 tableBody.innerHTML += `
-                    <tr class="font-weight-bold text-primary">
+                    <tr class="font-bold text-primary">
                         <td colspan="2">Total for ${departmentName}</td>
                         <td>${departmentTotal.toFixed(2)}</td>
                         <td></td>
@@ -95,7 +84,7 @@
 
             // Add overall totals to footer
             footer.innerHTML = `
-                <tr class="table-success font-weight-bold">
+                <tr class="table-success font-bold">
                     <td colspan="2">Budget Total</td>
                     <td>${grandTotal.toFixed(2)}</td>
                     <td></td>
@@ -126,18 +115,18 @@
         }, {});
     }
 
-    function getStatusClass(status) {
+    function getStatusBadge(status) {
         switch (status) {
-            case 'Pending': return 'status-pending';
-            case 'Approved': return 'status-approved';
-            case 'Rejected': return 'status-rejected';
-            default: return '';
+            case 'Pending': return `<span class="badge badge-warning">Pending</span>`;
+            case 'Finance Approved': return `<span class="badge badge-success">Finance Approved</span>`;
+            case 'Exec Approved': return `<span class="badge badge-primary">Exec Approved</span>`;
+            default: return `<span class="badge badge-secondary">Unknown</span>`;
         }
     }
 
-    function handleAction(budgetId) {
-        alert(`Action triggered for Budget ID: ${budgetId}`);
-        // Implement specific action logic here.
+    function viewBudget(budgetId) {
+        // Redirect to the editbudgets page with the budgetId as a query parameter
+        window.open(`editbudgets?budgetId=${budgetId}`, '_blank');
     }
 
     function sortTable(columnIndex) {
