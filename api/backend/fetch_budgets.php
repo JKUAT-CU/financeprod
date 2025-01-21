@@ -11,6 +11,7 @@ try {
             d.id AS department_id, 
             d.name AS department_name, 
             b.id AS budget_id, 
+            b.semester, 
             b.grand_total, 
             b.status
         FROM departments d

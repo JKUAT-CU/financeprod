@@ -16,6 +16,7 @@ require_once 'session.php';
         <thead>
             <tr>
                 <th>Department</th>
+                <th>Semester</th>
                 <th>Budget Amount</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -58,7 +59,8 @@ require_once 'session.php';
                 const row = `
                     <tr>
                         <td>${budget.department_name}</td>
-                        <td>${budget.total_amount}</td>
+                        <td>${budget.semester}</td>
+                        <td>${budget.grand_total.toFixed(2)}</td>
                         <td>${statusBadge}</td>
                         <td>
                             <!-- Redirect to editbudgets.php with budgetId as query parameter -->
