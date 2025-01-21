@@ -1,6 +1,3 @@
-<?php
-require_once 'session.php';
-?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,7 +20,7 @@ require_once 'session.php';
             </tr>
         </thead>
         <tbody id="departments-list">
-            <!-- Rows dynamically added -->
+            <!-- Rows will be dynamically added here -->
         </tbody>
     </table>
 </div>
@@ -32,7 +29,7 @@ require_once 'session.php';
     // Fetch and display the list of departments and budgets
     async function fetchBudgets() {
         try {
-            const response = await fetch('backend/fetch_budgets.php');
+            const response = await fetch('backend/fetch_budgets.php'); // Replace with the actual endpoint
             const budgets = await response.json();
             const tableBody = document.getElementById('departments-list');
             tableBody.innerHTML = ''; // Clear existing rows
@@ -55,12 +52,15 @@ require_once 'session.php';
                         break;
                 }
 
+                // Ensure grand_total is converted to a number before using toFixed
+                const grandTotal = Number(budget.grand_total).toFixed(2);
+
                 // Add a row for each budget
                 const row = `
                     <tr>
                         <td>${budget.department_name}</td>
                         <td>${budget.semester}</td>
-                        <td>${budget.grand_total.toFixed(2)}</td>
+                        <td>${grandTotal}</td>
                         <td>${statusBadge}</td>
                         <td>
                             <!-- Redirect to editbudgets.php with budgetId as query parameter -->
